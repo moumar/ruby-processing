@@ -89,6 +89,7 @@ module Processing
     # and width are declared inside the setup method instead.
     def initialize(options={})
       super()
+      $app = self
 
       java.lang.Thread.default_uncaught_exception_handler = proc do |thread, exception|
         #p java_class.declared_field("defaultSize").value(Java.ruby_to_java(self))
@@ -109,10 +110,12 @@ module Processing
       @full_screen = options[:full_screen]
       if @full_screen
         args << "--present"
+        args <<  "--bgcolor=#666666"
+        args << "--stop-color=#cccccc"
       end
+
       title = options[:title] || File.basename(SKETCH_PATH).sub(/(\.rb|\.pde)$/, '').titleize
       args << title
-      p args
       PApplet.run_sketch(args, self)
     end
 
@@ -127,31 +130,25 @@ module Processing
       begin
         super(*args)
       rescue Exception => e
-        raise e.cause
+        raise e.cause || e
       end
     end
+
+    # We override size to support setting full_screen and to keep our
+    # internal @width and @height in line.
 
     def size(*args)
-      p args
-      w, h, renderer = args
-      @width           = w     || @width
-      @height          = h     || @height
-      @render_mode     = renderer  || @render_mode
       begin
-        if @full_screen
-          super(screenWidth, screenHeight, renderer)
-        elsif @width && @height
-          super(@width, @height, renderer)
-        else
-          super(*args)
-        end
-      rescue NativeException => e
-        p e
-        p e.cause
-        raise e.cause
+        args[0], args[1] = screenWidth, screenHeight if @full_screen && !args.empty?
+        w, h, mode       = *args
+        @width           = w     || @width
+        @height          = h     || @height
+        @render_mode     = mode  || @render_mode
+        super(*args)
+      rescue Exception => e
+        raise e.cause || e
       end
     end
-
 
     # Provide a loggable string to represent this sketch.
     def inspect

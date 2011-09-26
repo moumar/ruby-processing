@@ -150,7 +150,8 @@ module Processing
     # then type them into a java_args.txt in your data directory next to your sketch.
     def discover_java_args(sketch)
       arg_file = "#{File.dirname(sketch)}/data/java_args.txt"
-      args = dock_icon
+      #args = dock_icon
+      args = []
       args += File.read(arg_file).split(/\s+/) if File.exists?(arg_file)
       args.map! {|arg| "-J#{arg}" }            if @options.jruby
       args
