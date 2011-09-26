@@ -97,18 +97,30 @@ module Processing
       end
 
       proxy_java_fields
+      # for the list of all available args, see 
+      # http://processing.googlecode.com/svn/trunk/processing/build/javadoc/core/processing/core/PApplet.html#runSketch%28java.lang.String[],%20processing.core.PApplet%29
       args = []
+      @width        = options[:width]
+      @height       = options[:height]
+      @render_mode  ||= JAVA2D
       if options[:x] && options[:y]
         args << "--location=#{options[:x]},#{options[:y]}"
       end
-      @full_screen = false
-      if options[:full_screen]
-        @full_screen = true
+      @full_screen = options[:full_screen]
+      if @full_screen
         args << "--present"
       end
       title = options[:title] || File.basename(SKETCH_PATH).sub(/(\.rb|\.pde)$/, '').titleize
       args << title
+      p args
       PApplet.run_sketch(args, self)
+    end
+
+
+    # Specify what rendering Processing should use, without needing to pass size.
+    def render_mode(mode_const)
+      @render_mode = mode_const
+      size(@width, @height, @render_mode)
     end
 
     def hint(*args)
@@ -120,9 +132,22 @@ module Processing
     end
 
     def size(*args)
+      p args
+      w, h, renderer = args
+      @width           = w     || @width
+      @height          = h     || @height
+      @render_mode     = renderer  || @render_mode
       begin
-        super(*args)
-      rescue Exception => e
+        if @full_screen
+          super(screenWidth, screenHeight, renderer)
+        elsif @width && @height
+          super(@width, @height, renderer)
+        else
+          super(*args)
+        end
+      rescue NativeException => e
+        p e
+        p e.cause
         raise e.cause
       end
     end
